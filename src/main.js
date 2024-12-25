@@ -48,7 +48,7 @@ function supportLanguages() {
 
 function translate(query, completion) {
   resTxt = "";
-  $http.streamRequest({
+  $http.post({
     method: "POST",
     url: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
     header: {
@@ -56,35 +56,42 @@ function translate(query, completion) {
       "Content-Type": "application/json",
     },
     body: initReqBody(query),
-    streamHandler: function (stream) {
-      var txt = stream.text;
+    // streamHandler: function (stream) {
+    //   var txt = stream.text;
 
-      var lines = txt.split("\n");
+    //   var lines = txt.split("\n");
 
-      lines.forEach(function (text) {
-        text = text.slice(6);
-        // $log.info(text);
+    //   lines.forEach(function (text) {
+    //     text = text.slice(6);
+    //     // $log.info(text);
 
-        if (text == "[DONE]") {
-          query.onCompletion({
-            result: {
-              toParagraphs: [resTxt],
-            },
-          });
-          return;
-        } else if (text.startsWith("{")) {
-          var obj = JSON.parse(text);
+    //     if (text == "[DONE]") {
+    //       query.onCompletion({
+    //         result: {
+    //           toParagraphs: [resTxt],
+    //         },
+    //       });
+    //       return;
+    //     } else if (text.startsWith("{")) {
+    //       var obj = JSON.parse(text);
 
-          resTxt = resTxt + obj.choices[0].delta.content;
-          translateResult = {
-            toParagraphs: [resTxt],
-          };
-          query.onStream({ result: translateResult });
-        }
-      });
-    },
-    handler: function (resp) {
-      var data = resp.data;
+    //       resTxt = resTxt + obj.choices[0].delta.content;
+    //       translateResult = {
+    //         toParagraphs: [resTxt],
+    //       };
+    //       query.onStream({ result: translateResult });
+    //     }
+    //   });
+    // },
+    handler: function (res) {
+      // $log.info('query值 : ' + JSON.stringify(res, null, 2));
+      if (res.response.statusCode === 200) {
+        var data = res.data;
+        var resTxt = data.choices[0].message.content;
+        completion({ result: { toParagraphs: [resTxt] } });
+      } else {
+        $log.info('接口返回值 data : ' + JSON.stringify(data));
+      }
     },
   });
 }
@@ -124,7 +131,7 @@ function initReqBody(query) {
 
   return {
     model: $option.model,
-    stream: true,
+    stream: false,
     messages: [
       {
         role: "system",
