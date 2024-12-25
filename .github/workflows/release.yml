@@ -1,9 +1,12 @@
-name: Release
+name: Build and Release
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -11,10 +14,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: '18'
 
@@ -22,10 +25,20 @@ jobs:
         run: npm install
 
       - name: Run build script
-        run: ./package.sh
+        run: |
+          chmod +x ./package.sh
+          ./package.sh
 
       - name: Upload release artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: bob-plugin
-          path: ./bob-plugin-chatglm-translate-v*.bobplugin
+          path: ./*.bobplugin
+          
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            *.bobplugin
+            appcast.json
